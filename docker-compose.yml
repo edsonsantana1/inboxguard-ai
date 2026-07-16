@@ -1,0 +1,79 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: inboxguard-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-inboxguard}
+      POSTGRES_USER: ${POSTGRES_USER:-inboxguard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inboxguard_dev_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - inboxguard_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-inboxguard} -d ${POSTGRES_DB:-inboxguard}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: inboxguard-api
+    restart: unless-stopped
+    environment:
+      APP_NAME: ${APP_NAME:-InboxGuard AI}
+      APP_VERSION: ${APP_VERSION:-0.3.0}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DEBUG: ${DEBUG:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      ALLOWED_HOSTS: '["localhost","127.0.0.1","api"]'
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-inboxguard}:${POSTGRES_PASSWORD:-inboxguard_dev_password}@postgres:5432/${POSTGRES_DB:-inboxguard}
+      DATABASE_STARTUP_CHECK: "true"
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8000/auth/google/callback}
+      GOOGLE_OAUTH_SCOPES: '${GOOGLE_OAUTH_SCOPES:-["https://www.googleapis.com/auth/gmail.readonly"]}'
+      GOOGLE_OAUTH_STATE_TTL_SECONDS: ${GOOGLE_OAUTH_STATE_TTL_SECONDS:-600}
+      GOOGLE_ALLOW_INSECURE_HTTP: ${GOOGLE_ALLOW_INSECURE_HTTP:-true}
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:-}
+      GMAIL_SYNC_MAX_MESSAGES: ${GMAIL_SYNC_MAX_MESSAGES:-50}
+      GMAIL_STORE_BODY_TEXT: ${GMAIL_STORE_BODY_TEXT:-false}
+      GMAIL_RETRY_ATTEMPTS: ${GMAIL_RETRY_ATTEMPTS:-3}
+      AI_PROVIDER: ${AI_PROVIDER:-openai}
+      AI_DETERMINISTIC_THRESHOLD: ${AI_DETERMINISTIC_THRESHOLD:-0.88}
+      AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-30}
+      AI_RETRY_ATTEMPTS: ${AI_RETRY_ATTEMPTS:-3}
+      AI_MAX_INPUT_CHARACTERS: ${AI_MAX_INPUT_CHARACTERS:-12000}
+      AI_PROMPT_VERSION: ${AI_PROMPT_VERSION:-email-classification-v1}
+
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5-mini}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_BASE_URL: ${GROQ_BASE_URL:-https://api.groq.com/openai/v1}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-20b}
+
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  inboxguard_postgres_data:

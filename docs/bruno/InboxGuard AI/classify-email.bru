@@ -1,0 +1,17 @@
+meta {
+  name: Classificar e-mail
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/emails/{{emailId}}/classify?force=false
+  body: none
+  auth: none
+}
+
+tests {
+  test("Classificação retornada", function() {
+    expect(res.status).to.equal(200);
+  });
+}

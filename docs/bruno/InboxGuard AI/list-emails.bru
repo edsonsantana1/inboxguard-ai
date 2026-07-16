@@ -1,0 +1,17 @@
+meta {
+  name: Listar e-mails armazenados
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/emails?limit=50&offset=0
+  body: none
+  auth: none
+}
+
+tests {
+  test("Lista retornada", function() {
+    expect(res.status).to.equal(200);
+  });
+}

@@ -1,0 +1,17 @@
+meta {
+  name: Sincronizar e-mails não lidos
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/emails/sync?max_messages=50
+  body: none
+  auth: none
+}
+
+tests {
+  test("Sincronização executada", function() {
+    expect(res.status).to.equal(200);
+  });
+}

@@ -1,0 +1,17 @@
+meta {
+  name: Consultar classificação
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/v1/emails/{{emailId}}/classification
+  body: none
+  auth: none
+}
+
+tests {
+  test("Classificação consultada", function() {
+    expect(res.status).to.equal(200);
+  });
+}
